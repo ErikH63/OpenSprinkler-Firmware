@@ -26,8 +26,17 @@
 #include "gpio.h"
 #include "testmode.h"
 
+//
+// when setting/clearing a station state force the station HW
+// state instead of relying on the station_bits values.
+//
+#define STA_SET_FORCE   0x80
+
 /** Declare static data members */
+#ifdef MQTT
 OSMqtt OpenSprinkler::mqtt;
+#endif // MQTT
+
 NVConData OpenSprinkler::nvdata;
 ConStatus OpenSprinkler::status;
 ConStatus OpenSprinkler::old_status;
@@ -87,7 +96,7 @@ extern char ether_buffer[];
 	extern SdFat sd;
 #else
 	#if defined(OSPI)
-		byte OpenSprinkler::pin_sr_data = PIN_SR_DATA;
+		int OpenSprinkler::pin_sr_data = PIN_SR_DATA;
 	#endif
 	// todo future: LCD define for Linux-based systems
 #endif
@@ -1501,8 +1510,10 @@ void OpenSprinkler::switch_special_station(byte sid, byte value) {
 byte OpenSprinkler::set_station_bit(byte sid, byte value) {
 	byte *data = station_bits+(sid>>3);  // pointer to the station byte
 	byte mask = (byte)1<<(sid&0x07); // mask
-	if (value) {
-		if((*data)&mask) return 0;	// if bit is already set, return no change
+    byte force = value & STA_SET_FORCE;
+
+	if (value & 1) {
+		if( (*data)&mask && force == 0 ) return 0;	// if bit is already set, return no change
 		else {
 			(*data) = (*data) | mask;
 			engage_booster = true; // if bit is changing from 0 to 1, set engage_booster
@@ -1510,7 +1521,7 @@ byte OpenSprinkler::set_station_bit(byte sid, byte value) {
 			return 1;
 		}
 	} else {
-		if(!((*data)&mask)) return 0; // if bit is already reset, return no change
+		if( !((*data)&mask) && force == 0 ) return 0; // if bit is already reset, return no change
 		else {
 			(*data) = (*data) & (~mask);
 			if(hw_type == HW_TYPE_LATCH) {
@@ -1527,7 +1538,7 @@ byte OpenSprinkler::set_station_bit(byte sid, byte value) {
 void OpenSprinkler::clear_all_station_bits() {
 	byte sid;
 	for(sid=0;sid<=MAX_NUM_STATIONS;sid++) {
-		set_station_bit(sid, 0);
+		set_station_bit(sid, STA_SET_FORCE | 0);
 	}
 }
 
@@ -1610,7 +1621,9 @@ void OpenSprinkler::switch_rfstation(RFStationData *data, bool turnon) {
  * Third byte is either 0 or 1 for active low (GND) or high (+5V) relays
  */
 void OpenSprinkler::switch_gpiostation(GPIOStationData *data, bool turnon) {
-	byte gpio = (data->pin[0] - '0') * 10 + (data->pin[1] - '0');
+    int gpio = 0;
+    for( int i = 0 ; i < sizeof(data->pin) ; i++ )
+        gpio = gpio * 10 + data->pin[i] - '0';
 	byte activeState = data->active - '0';
 
 	pinMode(gpio, OUTPUT);

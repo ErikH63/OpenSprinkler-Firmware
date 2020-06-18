@@ -363,6 +363,25 @@ enum {
 	#define V2_PIN_SENSOR1       3  // sensor 1
 	#define V2_PIN_SENSOR2       10 // sensor 2
 
+#elif defined(EMUL) // for OSPi but with emulated GPIOs, no SR, buttons, etc
+
+	#define OS_HW_VERSION    OSPI_HW_VERSION_BASE
+	#define PIN_SR_LATCH      -1    // shift register latch pin
+	#define PIN_SR_DATA       -1    // shift register data pin
+	#define PIN_SR_DATA_ALT   -1    // shift register data pin (alternative, for RPi 1 rev. 1 boards)
+	#define PIN_SR_CLOCK      -1    // shift register clock pin
+	#define PIN_SR_OE         -1    // shift register output enable pin
+	#define PIN_SENSOR1		  -1
+	#define PIN_SENSOR2		  -1
+	#define PIN_RFTX          -1    // RF transmitter pin
+	#define PIN_BUTTON_1      -1    // button 1
+	#define PIN_BUTTON_2      -1    // button 2
+	#define PIN_BUTTON_3      -1    // button 3
+
+	// #define PIN_FREE_LIST		{5,6,7,8,9,10,11,12,13,16,18,19,20,21,23,24,25,26}  // free GPIO pins
+	#define PIN_FREE_LIST		{}  // free GPIO pins
+	#define ETHER_BUFFER_SIZE   16384
+
 #elif defined(OSPI) // for OSPi
 
 	#define OS_HW_VERSION    OSPI_HW_VERSION_BASE

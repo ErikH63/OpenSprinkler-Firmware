@@ -29,7 +29,10 @@
 #include "utils.h"
 #include "gpio.h"
 #include "images.h"
+
+#ifdef MQTT
 #include "mqtt.h"
+#endif // MQTT
 
 #if defined(ARDUINO) // headers for ESP8266
 	#include <Arduino.h>
@@ -105,7 +108,7 @@ struct RemoteStationData {
 
 /** GPIO station data structures - Must fit in STATION_SPECIAL_DATA_SIZE */
 struct GPIOStationData {
-	byte pin[2];
+	byte pin[3];
 	byte active;
 };
 
@@ -150,11 +153,13 @@ public:
 #endif
 
 #if defined(OSPI)
-	static byte pin_sr_data;		// RPi shift register data pin
+	static int pin_sr_data;		// RPi shift register data pin
 															// to handle RPi rev. 1
 #endif
 
+#ifdef MQTT
 	static OSMqtt mqtt;
+#endif // MQTT
 
 	static NVConData nvdata;
 	static ConStatus status;

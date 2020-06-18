@@ -25,7 +25,10 @@
 #include "program.h"
 #include "server.h"
 #include "weather.h"
+
+#ifdef MQTT
 #include "mqtt.h"
+#endif // MQTT
 
 // External variables defined in main ion file
 #if defined(ARDUINO)
@@ -629,15 +632,21 @@ void server_change_stations() {
 			// only process GPIO and HTTP stations for OS 2.3, above, and OSPi
 			if(tmp_buffer[0] == STN_TYPE_GPIO) {
 				// check that pin does not clash with OSPi pins
-				byte gpio = (tmp_buffer[1] - '0') * 10 + tmp_buffer[2] - '0';
-				byte activeState = tmp_buffer[3] - '0';
+                GPIOStationData * std = (GPIOStationData *) (tmp_buffer + 1);
+				int gpio = 0;
+				for( int i = 0 ; i < sizeof(std->pin) ; i++ )
+                    gpio = gpio * 10 + std->pin[i] - '0';
+				byte activeState = std->active - '0';
 
-				byte gpioList[] = PIN_FREE_LIST;
-				bool found = false;
-				for (byte i = 0; i < sizeof(gpioList) && found == false; i++) {
-					if (gpioList[i] == gpio) found = true;
-				}
-				if (!found || activeState > 1) handle_return(HTML_DATA_OUTOFBOUND);
+				// byte gpioList[] = PIN_FREE_LIST;
+				// bool found = false;
+				// for (byte i = 0; i < sizeof(gpioList) && found == false; i++) {
+			// 		if (gpioList[i] == gpio) found = true;
+			// 	}
+				//if (!found || activeState > 1) handle_return(HTML_DATA_OUTOFBOUND);
+				if ( activeState > 1 )
+                    handle_return(HTML_DATA_OUTOFBOUND);
+
 			} else if (tmp_buffer[0] == STN_TYPE_HTTP) {
 				#if defined(ESP8266)	// ESP8266 performs automatic decoding so no need to do it again
 					if(m_server) urlDecode(tmp_buffer + 1);
@@ -650,7 +659,8 @@ void server_change_stations() {
 			}
 			// write spe data
 			file_write_block(STATIONS_FILENAME, tmp_buffer,
-				(uint32_t)sid*sizeof(StationData)+offsetof(StationData,type), STATION_SPECIAL_DATA_SIZE+1);
+				(uint32_t)sid*sizeof(StationData) + offsetof(StationData,type),
+                STATION_SPECIAL_DATA_SIZE+1);
 
 		} else {
 

@@ -27,7 +27,10 @@
 #include "program.h"
 #include "weather.h"
 #include "server.h"
+
+#ifdef MQTT
 #include "mqtt.h"
+#endif // MQTT
 
 #if defined(ARDUINO)
 	EthernetServer *m_server = NULL;
@@ -292,7 +295,6 @@ void do_setup() {
 #endif
 
 	DEBUG_BEGIN(115200);
-	
 	os.begin();					 // OpenSprinkler init
 	os.options_setup();  // Setup options
 
@@ -348,9 +350,12 @@ ISR(WDT_vect)
 }
 #endif
 
-#else
+#else   // not ARDUINO
 
 void do_setup() {
+#ifdef EMUL
+    printf("Starting as emulated\n");
+#endif
 	initialiseEpoch();	 // initialize time reference for millis() and micros()
 	os.begin();					 // OpenSprinkler init
 	os.options_setup();  // Setup options
@@ -366,7 +371,9 @@ void do_setup() {
 	}
 	os.status.req_network = 0;
 
+#ifdef MQTT
 	os.mqtt.init();
+#endif // MQTT
 	os.status.req_mqtt_restart = true;
 }
 #endif
@@ -564,10 +571,14 @@ void do_loop()
 
 	// Start up MQTT when we have a network connection
 	if (os.status.req_mqtt_restart && os.network_connected()) {
+#ifdef MQTT
 		os.mqtt.begin();
+#endif // MQTT
 		os.status.req_mqtt_restart = false;
 	}
+#ifdef MQTT
 	os.mqtt.loop();
+#endif // MQTT
 
 	// The main control loop runs once every second
 	if (curr_time != last_time) {
@@ -1281,6 +1292,7 @@ void push_message(int type, uint32_t lval, float fval, const char* sval) {
 	char* postval = tmp_buffer;
 	uint32_t volume;
 
+#ifdef MQTT
 	bool ifttt_enabled = os.iopts[IOPT_IFTTT_ENABLE]&type;
 
 	// check if this type of event is enabled for push notification
@@ -1457,6 +1469,7 @@ void push_message(int type, uint32_t lval, float fval, const char* sval) {
 
 		os.send_http_request(DEFAULT_IFTTT_URL, 80, ether_buffer, remote_http_callback);
 	}
+#endif // MQTT
 }
 
 // ================================

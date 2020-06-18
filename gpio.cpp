@@ -188,6 +188,9 @@ static byte GPIOExport(int pin) {
 	char buffer[BUFFER_MAX];
 	int fd, len;
 
+    if( pin < 0 )
+        return 0;
+
 	fd = open("/sys/class/gpio/export", O_WRONLY);
 	if (fd < 0) {
 		DEBUG_PRINTLN("failed to open export for writing");
@@ -241,6 +244,9 @@ void pinMode(int pin, byte mode) {
 	char path[BUFFER_MAX];
 	int fd;
 
+    if( pin < 0 )
+        return;
+
 	snprintf(path, BUFFER_MAX, "/sys/class/gpio/gpio%d/direction", pin);
 
 	struct stat st;
@@ -275,10 +281,13 @@ int gpio_fd_open(int pin, int mode) {
 	char path[BUFFER_MAX];
 	int fd;
 
+    if( pin < 0 )
+        return -1;
+
 	snprintf(path, BUFFER_MAX, "/sys/class/gpio/gpio%d/value", pin);
 	fd = open(path, mode);
 	if (fd < 0) {
-		DEBUG_PRINTLN("failed to open gpio");
+		printf("failed to open gpio %d\n", pin);
 		return -1;
 	}
 	return fd;
@@ -292,6 +301,9 @@ void gpio_fd_close(int fd) {
 /** Read digital value */
 byte digitalRead(int pin) {
 	char value_str[3];
+
+    if( pin < 0 )
+        return -1;
 
 	int fd = gpio_fd_open(pin, O_RDONLY);
 	if (fd < 0) {
@@ -318,7 +330,11 @@ void gpio_write(int fd, byte value) {
 
 /** Write digital value */
 void digitalWrite(int pin, byte value) {
-	int fd = gpio_fd_open(pin);
+	int fd;
+    if( pin < 0 )
+        return;
+
+	fd = gpio_fd_open(pin);
 	if (fd < 0) {
 		return;
 	}
